@@ -26,6 +26,7 @@ class UserInDB(IDModelMixin, UserBase):
     email: EmailStr
     is_active: bool
     confirmation: Optional[UUID4]
+    hashed_password: str
 
 
 class UserPublic(IDModelMixin, UserBase):

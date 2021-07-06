@@ -6,6 +6,7 @@ email-validator
 python-jose[cryptography]
 passlib
 bcrypt
+python-multipart
 
 # db
 databases[postgresql]

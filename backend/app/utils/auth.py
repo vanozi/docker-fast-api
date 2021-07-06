@@ -7,12 +7,14 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.db.repositories.users import UsersRepository
+from app.api.dependencies.database import get_repository
 from app.core import config
 import uuid
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 class Auth:
     password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -26,9 +28,7 @@ class Auth:
         return pwd_context.verify(plain_password, hashed_password)
 
     @staticmethod
-    def create_jwt_token(
-        data: dict, expires_delta: Optional[timedelta] = None
-    ):
+    def create_jwt_token(data: dict, expires_delta: Optional[timedelta] = None):
         to_encode = data.copy()
         if expires_delta:
             expire = datetime.utcnow() + expires_delta
@@ -39,6 +39,15 @@ class Auth:
             to_encode, str(config.SECRET_KEY), algorithm=config.ALGORITHM
         )
         return encoded_jwt
+
+    @staticmethod
+    def create_access_token(email: str):
+        jti = uuid.uuid4().hex
+        claims = {"sub": email, "scope": "login", "jti": jti}
+        return Auth.create_jwt_token(
+            claims,
+            timedelta(minutes=config.ACCESS_TOKEN_LIFETIME),
+        )
 
     @staticmethod
     def create_confirmation_token(email: str):
@@ -52,8 +61,8 @@ class Auth:
             ),
         }
 
-    # @staticmethod
-    # def create_password_reset_token(user_email: str):
+    @staticmethod
+    def create_password_reset_token(user_email: str):
         jti = uuid.uuid4()
         claims = {"sub": user_email, "scope": "password_reset", "jti": jti.hex}
         return {
@@ -65,12 +74,18 @@ class Auth:
             ),
         }
 
-    # # Authenticate and return user
-    # @staticmethod
-    # def authenticate_user(email: str, password: str, db: Session):
-    #     user = get_user_by_email(db=db, email=email)
-    #     if not user:
-    #         return False
-    #     if not Auth.verify_password(password, user.hashed_password):
-    #         return False
-    #     return user
+    # Authenticate and return user
+    @staticmethod
+    async def authenticate_user(
+        email: str,
+        password: str,
+        users_repo: UsersRepository
+    ):
+        user = await users_repo.get_user_by_email(email=email)
+        if not user:
+            return False
+        if not Auth.verify_password(
+            plain_password=password, hashed_password=user.hashed_password
+        ):
+            return False
+        return user

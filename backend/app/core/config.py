@@ -20,6 +20,7 @@ DATABASE_URL = config(
 )
 
 REGISTRATION_TOKEN_LIFETIME = config("REGISTRATION_TOKEN_LIFETIME", cast=int)
+ACCESS_TOKEN_LIFETIME = config("ACCESS_TOKEN_LIFETIME", cast=int)
 ALGORITHM = config("ALGORITHM", cast=str)
 MAIL_SENDER = config("MAIL_SENDER", cast=str)
 SMTP_HOST = config("SMTP_HOST", cast=str)

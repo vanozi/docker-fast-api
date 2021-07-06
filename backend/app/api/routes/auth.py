@@ -11,6 +11,8 @@ from app.utils.auth import Auth
 from jose import jwt
 from app.core import config
 
+from datetime import timedelta
+
 
 router = APIRouter()
 
@@ -43,9 +45,19 @@ async def activate_email(
 
 
 @router.post("/access_token")
-async def get_access_token(users_repo: UsersRepository = Depends(get_repository(UsersRepository), OAuth2PasswordRequestForm = Depends())
-
-
+async def get_access_token(users_repo: UsersRepository = Depends(get_repository(UsersRepository)),form_data: OAuth2PasswordRequestForm = Depends()):
+    user = await Auth.authenticate_user(email=form_data.username, password=form_data.password, users_repo=users_repo)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=config.ACCESS_TOKEN_LIFETIME)
+    access_token = Auth.create_access_token(
+        email=user.email
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 # @router.post("/token", response_model=Token)
 # async def login_for_access_token(settings: config.Settings = Depends(get_settings), db: Session = Depends(get_db),
