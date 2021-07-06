@@ -1,0 +1,55 @@
+version: "3"
+
+services:
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+        - ./backend/.env
+    volumes:
+      - ./backend/:/backend/
+    ports:
+      - 8000:8000
+      - 5678:5678
+    command:
+      [
+        "sh",
+        "-c",
+        "pip install debugpy && python -m debugpy --wait-for-client --listen 0.0.0.0:5678 -m uvicorn app.api.server:app --reload --host 0.0.0.0 --port 8000",
+      ]
+    links: 
+      - mail
+
+
+  mail:
+    image: jlynn/python-smtp
+    restart: always
+
+
+  db:
+    image: postgres:13-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - ./backend/.env
+    ports:
+      - 5432:5432
+          
+  pgadmin:
+    image: dpage/pgadmin4:4.18
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: vanozi@vanozi.com
+      PGADMIN_DEFAULT_PASSWORD: vanozi
+      PGADMIN_LISTEN_PORT: 80
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    links:
+      - "db:pgsql-server"
+
+volumes:
+    postgres_data:
+    pgadmin-data:
