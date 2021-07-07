@@ -11,7 +11,9 @@ from app.api.dependencies.database import get_repository
 from app.core import config
 import uuid
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+from app.models.users import UserInDB
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/access_token")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -89,3 +91,32 @@ class Auth:
         ):
             return False
         return user
+
+
+
+# get current user
+async def get_current_user(users_repo: UsersRepository = Depends(get_repository(UsersRepository)),
+                           token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, str(config.SECRET_KEY), algorithms=[config.ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exceptions
+    user = users_repo.get_user_by_email(email=usernametoken_data.username)
+    if user is None:
+        raise credentials_exception
+    return user
+
+
+# get current active use
+async def get_current_active_user(current_user: UserInDB = Depends(get_current_user)):
+    if not current_user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user

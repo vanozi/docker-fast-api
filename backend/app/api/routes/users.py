@@ -2,18 +2,20 @@ from typing import List
 
 from app.api.dependencies.database import get_repository
 from app.db.repositories.users import UsersRepository
-from app.models.users import UserCreate, UserPublic
+from app.models.users import UserCreate, UserPublic, UserInDB
 from fastapi import APIRouter, Body, Depends, HTTPException
 from starlette import status
 
 from app.utils.auth import Auth
 from app.utils.mailer import Mailer
 
+from app.utils.auth import get_current_user
+
 router = APIRouter()
 
 
 @router.get("/")
-async def get_all_users(
+async def get_all_users(current_user: UserInDB = Depends(get_current_user),
     users_repo: UsersRepository = Depends(get_repository(UsersRepository)),
 ) -> List[UserPublic]:
     users = await users_repo.get_all_users()
